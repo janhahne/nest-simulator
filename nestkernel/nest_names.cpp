@@ -471,6 +471,7 @@ const Name update( "update" );
 const Name update_node( "update_node" );
 const Name use_gid_in_filename( "use_gid_in_filename" );
 const Name use_wfr( "use_wfr" );
+const Name use_wfr_spike_prediction( "use_wfr_spike_prediction" );
 
 const Name V_act_NMDA( "V_act_NMDA" );
 const Name V_epsp( "V_epsp" );

@@ -326,6 +326,8 @@ private:
     double sumj_g_ij_;
     // summarized coefficients of the interpolation polynomial
     std::vector< double > interpolation_coefficients;
+    // used for better extrapolations in case of a spike
+    std::vector< double > spike_evolution;
 
     /**
      * Input current injected by CurrentEvent.

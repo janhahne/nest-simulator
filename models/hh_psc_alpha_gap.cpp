@@ -468,6 +468,80 @@ nest::hh_psc_alpha_gap::init_buffers_()
   B_.sys_.params = reinterpret_cast< void* >( this );
 
   B_.I_stim_ = 0.0;
+
+  // spike evolution for spike prediction in 0.1 ms steps
+  const double spike_evolution_temp[] = {
+    -40.,
+    -33.,
+    -26.,
+    -20.,
+    70.,
+    50.,
+    30.,
+    20.,
+    10.,
+    0.,
+    -10.,
+    -20,
+    -30.,
+    -41.,
+    -52.,
+    -64.,
+    -75.,
+    -88.,
+    -88.,
+    -88.,
+    -88.,
+    -87.,
+    -86.6,
+    -86.3,
+    -86.,
+    -85.6,
+    -85.3,
+    -86.,
+    -85.,
+    -84.6,
+    -84.3,
+    -84.,
+    -83.6,
+    -83.3,
+    -83.,
+    -82.6,
+    -82.3,
+    -82.,
+    -81.6,
+    -81.3,
+    -81.,
+    -80.6,
+    -80.3,
+    -80.,
+    -79.6,
+    -79.3,
+    -79.,
+    -78.6,
+    -78.3,
+    -78.,
+  };
+
+  // adjust to resolution
+  int steps_per_value = Time( Time::ms( 0.1 ) ).get_steps();
+  B_.spike_evolution.resize( 49 * steps_per_value, 0.0 );
+  for ( int i = 0; i < 49; i++ )
+  {
+    for ( int j = 0; j < steps_per_value; j++ )
+    {
+      B_.spike_evolution[ i * steps_per_value + j ] = spike_evolution_temp[ i ]
+        + 1.0 * j / steps_per_value
+          * ( spike_evolution_temp[ i + 1 ] - spike_evolution_temp[ i ] );
+    }
+  }
+
+  // for( int i = 0; i < B_.spike_evolution.size() ; i++)
+  //    std::cout << "| "<<B_.spike_evolution[i]<<std::endl;
+  // std::cout << "Steps of 0.1: "<<Time( Time::ms( 0.1 )
+  // ).get_steps()<<std::endl;
+  // std::cout << "Steps of min_delay: " <<
+  // kernel().connection_manager.get_min_delay()<<std::endl;
 }
 
 void
@@ -501,6 +575,8 @@ nest::hh_psc_alpha_gap::update_( Time const& origin,
   const size_t interpolation_order =
     kernel().simulation_manager.get_wfr_interpolation_order();
   const double wfr_tol = kernel().simulation_manager.get_wfr_tol();
+  const bool use_wfr_spike_prediction =
+    kernel().simulation_manager.use_wfr_spike_prediction();
   bool wfr_tol_exceeded = false;
 
   // allocate memory to store the new interpolation coefficients
@@ -641,16 +717,55 @@ nest::hh_psc_alpha_gap::update_( Time const& origin,
 
   } // end for-loop
 
-  // if not called_from_wfr_update perform constant extrapolation
+  // if not called_from_wfr_update perform extrapolation
   // and reset last_y_values
   if ( not called_from_wfr_update )
   {
-    for ( long temp = from; temp < to; ++temp )
+    if ( not use_wfr_spike_prediction
+      or S_.y_[ State_::V_M ] < -40.0 ) // constant extrapolation
     {
-      new_coefficients[ temp * ( interpolation_order + 1 ) + 0 ] =
-        S_.y_[ State_::V_M ];
+      for ( long temp = from; temp < to; ++temp )
+      {
+        new_coefficients[ temp * ( interpolation_order + 1 ) + 0 ] =
+          S_.y_[ State_::V_M ];
+      }
+    }
+    else // predict spiking behavior
+    {
+      int pos = 0;
+      hh_psc_alpha_gap_dynamics(
+        0, S_.y_, f_temp, reinterpret_cast< void* >( this ) );
+      if ( f_temp[ State_::V_M ] > 0 )
+      {
+        while ( B_.spike_evolution[ pos ] < S_.y_[ State_::V_M ]
+          and B_.spike_evolution[ pos ] < 69. )
+        {
+          pos++;
+        }
+      }
+      else
+      {
+        while ( B_.spike_evolution[ pos ] > S_.y_[ State_::V_M ]
+          or B_.spike_evolution[ pos ] < B_.spike_evolution[ pos + 1 ] )
+        {
+          pos++;
+        }
+      }
+      for ( long temp = from; temp < to; ++temp )
+      {
+        new_coefficients[ temp * ( interpolation_order + 1 ) + 0 ] =
+          B_.spike_evolution[ pos ];
+        new_coefficients[ temp * ( interpolation_order + 1 ) + 1 ] =
+          B_.spike_evolution[ pos + 1 ] - B_.spike_evolution[ pos ];
+        pos++;
+      }
     }
 
+
+//     for ( int i = 0; i < new_coefficients.size(); i++ )
+//       std::cout << " |  " << new_coefficients[ i ];
+//     std::cout << std::endl
+//               << "--------" << std::endl;
     std::vector< double >( kernel().connection_manager.get_min_delay(), 0.0 )
       .swap( B_.last_y_values );
   }

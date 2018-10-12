@@ -490,6 +490,7 @@ extern const Name update;
 extern const Name update_node;
 extern const Name use_gid_in_filename;
 extern const Name use_wfr;
+extern const Name use_wfr_spike_prediction;
 
 extern const Name V_act_NMDA;
 extern const Name V_epsp;

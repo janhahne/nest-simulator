@@ -55,6 +55,7 @@ nest::SimulationManager::SimulationManager()
   , inconsistent_state_( false )
   , print_time_( false )
   , use_wfr_( true )
+  , use_wfr_spike_prediction_( false )
   , wfr_comm_interval_( 1.0 )
   , wfr_tol_( 0.0001 )
   , wfr_max_iterations_( 15 )
@@ -254,11 +255,15 @@ nest::SimulationManager::set_status( const DictionaryDatum& d )
     }
   }
 
+  updateValue< bool >(
+    d, names::use_wfr_spike_prediction, use_wfr_spike_prediction_ );
+
   // The decision whether the waveform relaxation is used
   // must be set before nodes are created.
-  // Important: wfr_comm_interval_ may change depending on use_wfr_
-  bool wfr;
-  if ( updateValue< bool >( d, names::use_wfr, wfr ) )
+  // Important: wfr_comm_interval_ and wfr_interpolation_order_ may change
+  // dependent on the choice of use_wfr_
+  bool use_wfr;
+  if ( updateValue< bool >( d, names::use_wfr, use_wfr ) )
   {
     if ( kernel().node_manager.size() > 1 )
     {
@@ -270,12 +275,15 @@ nest::SimulationManager::set_status( const DictionaryDatum& d )
     }
     else
     {
-      use_wfr_ = wfr;
-      // if no wfr is used explicitly set wfr_comm_interval to resolution
-      // because communication in every step is needed
+      use_wfr_ = use_wfr;
       if ( not use_wfr_ )
       {
+        // if no wfr is used explicitly set wfr_comm_interval to resolution
+        // because communication in every step is needed
         wfr_comm_interval_ = Time::get_resolution().get_ms();
+        // in addition reduce wfr_interpolation_order_ to avoid unnecessary data
+        // transfer
+        wfr_interpolation_order_ = 1;
       }
     }
   }
@@ -356,7 +364,16 @@ nest::SimulationManager::set_status( const DictionaryDatum& d )
   long interp_order;
   if ( updateValue< long >( d, names::wfr_interpolation_order, interp_order ) )
   {
-    if ( ( interp_order < 0 ) or ( interp_order == 2 ) or ( interp_order > 3 ) )
+    if ( not use_wfr_ )
+    {
+      LOG( M_ERROR,
+        "SimulationManager::set_status",
+        "Cannot set interpolation order when usage of waveform "
+        "relaxation is disabled. Set use_wfr to true first." );
+      throw KernelException();
+    }
+    else if ( ( interp_order < 0 ) or ( interp_order == 2 )
+      or ( interp_order > 3 ) )
     {
       LOG( M_ERROR,
         "SimulationManager::set_status",
@@ -385,6 +402,7 @@ nest::SimulationManager::get_status( DictionaryDatum& d )
   def< bool >( d, names::print_time, print_time_ );
 
   def< bool >( d, names::use_wfr, use_wfr_ );
+  def< bool >( d, names::use_wfr_spike_prediction, use_wfr_spike_prediction_ );
   def< double >( d, names::wfr_comm_interval, wfr_comm_interval_ );
   def< double >( d, names::wfr_tol, wfr_tol_ );
   def< long >( d, names::wfr_max_iterations, wfr_max_iterations_ );

@@ -93,6 +93,11 @@ public:
   bool use_wfr() const;
 
   /**
+   * Returns true if spike prediction is used for the extrapolation.
+   */
+  bool use_wfr_spike_prediction() const;
+
+  /**
    * Get the desired communication interval for the waveform relaxation
    */
   double get_wfr_comm_interval() const;
@@ -184,9 +189,11 @@ private:
                             //!< simulation must not be resumed
   bool print_time_;         //!< Indicates whether time should be printed during
                             //!< simulations (or not)
-  bool use_wfr_;            //!< Indicates wheter waveform relaxation is used
-  double wfr_comm_interval_; //!< Desired waveform relaxation communication
-                             //!< interval (in ms)
+  bool use_wfr_;            //!< Indicates whether waveform relaxation is used
+  bool
+    use_wfr_spike_prediction_; //!< Indicates whether spike prediction is used
+  double wfr_comm_interval_;   //!< Desired waveform relaxation communication
+                               //!< interval (in ms)
   double wfr_tol_; //!< Convergence tolerance of waveform relaxation method
   long wfr_max_iterations_; //!< maximal number of iterations used for waveform
                             //!< relaxation
@@ -241,6 +248,12 @@ inline bool
 SimulationManager::use_wfr() const
 {
   return use_wfr_;
+}
+
+inline bool
+SimulationManager::use_wfr_spike_prediction() const
+{
+  return use_wfr_spike_prediction_;
 }
 
 inline double
