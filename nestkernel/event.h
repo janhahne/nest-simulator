@@ -1196,6 +1196,22 @@ public:
   weight get_diffusion_factor() const;
 };
 
+/**
+ * Event for SIC_connections between astrocytes and neurons. The event transmits
+ * the slow invert current to the connected neurons.
+ */
+class SICEvent : public DataSecondaryEvent< double, SICEvent >
+{
+
+public:
+  SICEvent()
+  {
+  }
+
+  void operator()();
+  SICEvent* clone() const;
+};
+
 template < typename DataType, typename Subclass >
 inline DataType
 DataSecondaryEvent< DataType, Subclass >::get_coeffvalue( std::vector< unsigned int >::iterator& pos )
@@ -1248,6 +1264,12 @@ inline weight
 DiffusionConnectionEvent::get_diffusion_factor() const
 {
   return diffusion_factor_;
+}
+
+inline SICEvent*
+SICEvent::clone() const
+{
+  return new SICEvent( *this );
 }
 
 //*************************************************************

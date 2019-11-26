@@ -53,6 +53,7 @@
 #include "aeif_psc_delta.h"
 #include "aeif_psc_delta_clopath.h"
 #include "amat2_psc_exp.h"
+#include "astrocyte.h"
 #include "erfc_neuron.h"
 #include "gauss_rate.h"
 #include "ginzburg_neuron.h"
@@ -365,6 +366,7 @@ ModelsModule::init( SLIInterpreter* )
   kernel().model_manager.register_node_model< aeif_psc_alpha >( "aeif_psc_alpha" );
   kernel().model_manager.register_node_model< aeif_psc_exp >( "aeif_psc_exp" );
   kernel().model_manager.register_node_model< aeif_psc_delta >( "aeif_psc_delta" );
+  kernel().model_manager.register_node_model< astrocyte >( "astrocyte" );
   kernel().model_manager.register_node_model< ht_neuron >( "ht_neuron" );
   kernel().model_manager.register_node_model< aeif_cond_beta_multisynapse >( "aeif_cond_beta_multisynapse" );
   kernel().model_manager.register_node_model< aeif_cond_alpha_multisynapse >( "aeif_cond_alpha_multisynapse" );
