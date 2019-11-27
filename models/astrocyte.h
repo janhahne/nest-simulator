@@ -217,19 +217,21 @@ private:
   //! Independent parameters
   struct Parameters_
   {
-    double t_ref_;   //!< refractory time in ms
-    double g_Na;     //!< Sodium Conductance in nS
-    double g_Kv1;    //!< Potassium Conductance in nS
-    double g_Kv3;    //!< Potassium Conductance in nS
-    double g_L;      //!< Leak Conductance in nS
-    double C_m;      //!< Membrane Capacitance in pF
-    double E_Na;     //!< Sodium Reversal Potential in mV
-    double E_K;      //!< Potassium Reversal Potential in mV
-    double E_L;      //!< Leak reversal Potential (aka resting potential) in mV
-    double tau_synE; //!< Synaptic Time Constant Excitatory Synapse in ms
-    double tau_synI; //!< Synaptic Time Constant for Inhibitory Synapse in ms
-    double I_e;      //!< Constant Current in pA
 
+    double tau_ip3_;
+    double r_ip3_;
+    double d1_;
+    double d2_;
+    double d3_;
+    double d5_;
+    double v1_; 
+    double v2_; 
+    double v3_; 
+    double k3_;
+    double a2_;
+    double c0_;
+    double c1_;
+    double ip3_eq_;
     Parameters_(); //!< Sets default parameter values
 
     void get( DictionaryDatum& ) const; //!< Store current values in dictionary
@@ -255,21 +257,14 @@ public:
      */
     enum StateVecElems
     {
-      V_M = 0,
-      HH_M,   // 1
-      HH_H,   // 2
-      HH_N,   // 3
-      HH_P,   // 4
-      DI_EXC, // 5
-      I_EXC,  // 6
-      DI_INH, // 7
-      I_INH,  // 8
+      IP3 = 0,
+      CALC,   // 1
+      F_IP3R,   // 2
       STATE_VEC_SIZE
     };
 
     //! neuron state, must be C-array for GSL solver
     double y_[ STATE_VEC_SIZE ];
-    int r_; //!< number of refractory steps remaining
 
     State_( const Parameters_& ); //!< Default initialization
     State_( const State_& );
@@ -296,7 +291,6 @@ private:
 
     /** buffers and sums up incoming spikes/currents */
     RingBuffer spike_exc_;
-    RingBuffer spike_inh_;
     RingBuffer currents_;
 
     /** GSL ODE stuff */

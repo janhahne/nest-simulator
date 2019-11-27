@@ -57,13 +57,9 @@ void
 RecordablesMap< astrocyte >::create()
 {
   // use standard names whereever you can for consistency!
-  insert_( names::V_m, &astrocyte::get_y_elem_< astrocyte::State_::V_M > );
-  insert_( names::I_syn_ex, &astrocyte::get_y_elem_< astrocyte::State_::I_EXC > );
-  insert_( names::I_syn_in, &astrocyte::get_y_elem_< astrocyte::State_::I_INH > );
-  insert_( names::Act_m, &astrocyte::get_y_elem_< astrocyte::State_::HH_M > );
-  insert_( names::Inact_h, &astrocyte::get_y_elem_< astrocyte::State_::HH_H > );
-  insert_( names::Act_n, &astrocyte::get_y_elem_< astrocyte::State_::HH_N > );
-  insert_( names::Inact_p, &astrocyte::get_y_elem_< astrocyte::State_::HH_P > );
+  insert_( names::IP3, &astrocyte::get_y_elem_< astrocyte::State_::IP3 > );
+  insert_( names::Ca_astro, &astrocyte::get_y_elem_< astrocyte::State_::CALC > );
+  insert_( names::F_IP3R, &astrocyte::get_y_elem_< astrocyte::State_::F_IP3R > );
 }
 
 extern "C" int
@@ -83,27 +79,21 @@ astrocyte_dynamics( double time, const double y[], double f[], void* pnode )
   // good compiler will optimize the verbosity away ...
 
   // shorthand for state variables
-  const double& V = y[ S::V_M ];
-  const double& m = y[ S::HH_M ];
-  const double& h = y[ S::HH_H ];
-  const double& n = y[ S::HH_N ];
-  const double& p = y[ S::HH_P ];
-  const double& dI_ex = y[ S::DI_EXC ];
-  const double& I_ex = y[ S::I_EXC ];
-  const double& dI_in = y[ S::DI_INH ];
-  const double& I_in = y[ S::I_INH ];
+  const double& ip3 = y[ S::IP3 ];
+  const double& calc = y[ S::CALC ];
+  const double& f_ip3r = y[ S::F_IP3R ];
 
-  const double alpha_m = 40. * ( V - 75.5 ) / ( 1. - std::exp( -( V - 75.5 ) / 13.5 ) );
-  const double beta_m = 1.2262 / std::exp( V / 42.248 );
-  const double alpha_h = 0.0035 / std::exp( V / 24.186 );
-  const double beta_h = 0.017 * ( 51.25 + V ) / ( 1. - std::exp( -( 51.25 + V ) / 5.2 ) );
-  const double alpha_p = ( V - 95. ) / ( 1. - std::exp( -( V - 95. ) / 11.8 ) );
-  const double beta_p = 0.025 / std::exp( V / 22.222 );
-  const double alpha_n = 0.014 * ( V + 44. ) / ( 1. - std::exp( -( V + 44. ) / 2.3 ) );
-  const double beta_n = 0.0043 / std::exp( ( V + 44. ) / 34. );
-  const double I_Na = node.P_.g_Na * m * m * m * h * ( V - node.P_.E_Na );
-  const double I_K = ( node.P_.g_Kv1 * n * n * n * n + node.P_.g_Kv3 * p * p ) * ( V - node.P_.E_K );
-  const double I_L = node.P_.g_L * ( V - node.P_.E_L );
+  const double alpha_f_ip3r = node.P_.a2_ * node.P_.d2_ * ( ip3 + node.P_.d1_ ) / ( ip3 +
+      node.P_.d3_ );
+  const double beta_f_ip3r = node.P_.a2_ * calc;
+  const double I_pump = node.P_.v3_ * std::pow(calc, 2) / (std::pow(node.P_.k3_, 2) + std::pow(calc, 2));
+  const double m_inf = ip3 / (ip3 + node.P_.d1_);
+  const double n_inf = calc / (calc + node.P_.d5_);
+  const double calc_ER = (node.P_.c0_ - calc) / node.P_.c1_;
+  const double I_leak = node.P_.c1_ * node.P_.v2_ * (calc_ER - calc);
+  const double I_channel = node.P_.c1_ * node.P_.v1_ * std::pow(m_inf, 3) * std::pow(n_inf, 3) *
+    std::pow(f_ip3r, 3) * (calc_ER - calc);
+
 
   // set I_gap depending on interpolation order
   double gap = 0.0;
@@ -113,16 +103,16 @@ astrocyte_dynamics( double time, const double y[], double f[], void* pnode )
   switch ( kernel().simulation_manager.get_wfr_interpolation_order() )
   {
   case 0:
-    gap = -node.B_.sumj_g_ij_ * V + node.B_.interpolation_coefficients[ node.B_.lag_ ];
+    gap = -node.B_.sumj_g_ij_ * ip3 + node.B_.interpolation_coefficients[ node.B_.lag_ ];
     break;
 
   case 1:
-    gap = -node.B_.sumj_g_ij_ * V + node.B_.interpolation_coefficients[ node.B_.lag_ * 2 + 0 ]
+    gap = -node.B_.sumj_g_ij_ * ip3 + node.B_.interpolation_coefficients[ node.B_.lag_ * 2 + 0 ]
       + node.B_.interpolation_coefficients[ node.B_.lag_ * 2 + 1 ] * t;
     break;
 
   case 3:
-    gap = -node.B_.sumj_g_ij_ * V + node.B_.interpolation_coefficients[ node.B_.lag_ * 4 + 0 ]
+    gap = -node.B_.sumj_g_ij_ * ip3 + node.B_.interpolation_coefficients[ node.B_.lag_ * 4 + 0 ]
       + node.B_.interpolation_coefficients[ node.B_.lag_ * 4 + 1 ] * t
       + node.B_.interpolation_coefficients[ node.B_.lag_ * 4 + 2 ] * t * t
       + node.B_.interpolation_coefficients[ node.B_.lag_ * 4 + 3 ] * t * t * t;
@@ -134,20 +124,9 @@ astrocyte_dynamics( double time, const double y[], double f[], void* pnode )
 
   const double I_gap = gap;
 
-  // V dot -- synaptic input are currents, inhib current is negative
-  f[ S::V_M ] = ( -( I_Na + I_K + I_L ) + node.B_.I_stim_ + node.P_.I_e + I_ex + I_in + I_gap ) / node.P_.C_m;
-
-  // channel dynamics
-  f[ S::HH_M ] = alpha_m * ( 1 - y[ S::HH_M ] ) - beta_m * y[ S::HH_M ]; // m-variable
-  f[ S::HH_H ] = alpha_h * ( 1 - y[ S::HH_H ] ) - beta_h * y[ S::HH_H ]; // h-variable
-  f[ S::HH_P ] = alpha_p * ( 1 - y[ S::HH_P ] ) - beta_p * y[ S::HH_P ]; // p-variable
-  f[ S::HH_N ] = alpha_n * ( 1 - y[ S::HH_N ] ) - beta_n * y[ S::HH_N ]; // n-variable
-
-  // synapses: alpha functions
-  f[ S::DI_EXC ] = -dI_ex / node.P_.tau_synE;
-  f[ S::I_EXC ] = dI_ex - ( I_ex / node.P_.tau_synE );
-  f[ S::DI_INH ] = -dI_in / node.P_.tau_synI;
-  f[ S::I_INH ] = dI_in - ( I_in / node.P_.tau_synI );
+  f[ S::IP3 ] = ( node.P_.ip3_eq_ - ip3 ) / node.P_.tau_ip3_;
+  f[ S::CALC ] = I_channel - I_pump + I_leak;
+  f[ S::F_IP3R ] = alpha_f_ip3r * ( 1.0 - f_ip3r ) - beta_f_ip3r * f_ip3r;
 
   return GSL_SUCCESS;
 }
@@ -158,50 +137,31 @@ astrocyte_dynamics( double time, const double y[], double f[], void* pnode )
  * ---------------------------------------------------------------- */
 
 nest::astrocyte::Parameters_::Parameters_()
-  : t_ref_( 2.0 )   // ms
-  , g_Na( 4500. )   // nS
-  , g_Kv1( 9.0 )    // nS
-  , g_Kv3( 9000.0 ) // nS
-  , g_L( 10.0 )     // nS
-  , C_m( 40.0 )     // pF
-  , E_Na( 74.0 )    // mV
-  , E_K( -90.0 )    // mV
-  , E_L( -70. )     // mV
-  , tau_synE( 0.2 ) // ms
-  , tau_synI( 2.0 ) // ms
-  , I_e( 0.0 )      // pA
+  : tau_ip3_( 7142.0 )   // ms
+  , r_ip3_( 5.0 )      // uM / ms
+  , d1_( 0.13 )    // uM
+  , d2_( 1.049 )    // uM
+  , d3_( 0.9434 )    // uM
+  , d5_( 0.08234 )    // uM
+  , v1_( 0.006 )    // 1 / ms
+  , v2_( 0.00011 )    // 1 / ms
+  , v3_( 0.0009 )    // uM / ms
+  , k3_( 0.1 )    // uM
+  , a2_( 0.0002 )    // 1 / (uM*ms)
+  , c0_( 2.0 )   // uM
+  , c1_( 0.185 ) 
+  , ip3_eq_( 0.16 )    // uM
 {
 }
 
-nest::astrocyte::State_::State_( const Parameters_& )
-  : r_( 0 )
+nest::astrocyte::State_::State_( const Parameters_& p )
 {
-  y_[ 0 ] = -69.60401191631222; // p.E_L;
-  //'Act_n': 0.0005741576228359798, 'Inact_p': 0.00025113182271506364
-  //'Inact_h': 0.8684620412943986,
-  for ( size_t i = 1; i < STATE_VEC_SIZE; ++i )
-  {
-    y_[ i ] = 0;
-  }
-
-  // equilibrium values for (in)activation variables
-  const double alpha_m = 40. * ( y_[ 0 ] - 75.5 ) / ( 1. - std::exp( -( y_[ 0 ] - 75.5 ) / 13.5 ) );
-  const double beta_m = 1.2262 / std::exp( y_[ 0 ] / 42.248 );
-  const double alpha_h = 0.0035 / std::exp( y_[ 0 ] / 24.186 );
-  const double beta_h = 0.017 * ( 51.25 + y_[ 0 ] ) / ( 1. - std::exp( -( 51.25 + y_[ 0 ] ) / 5.2 ) );
-  const double alpha_p = ( y_[ 0 ] - 95. ) / ( 1. - std::exp( -( y_[ 0 ] - 95. ) / 11.8 ) );
-  const double beta_p = 0.025 / std::exp( y_[ 0 ] / 22.222 );
-  const double alpha_n = 0.014 * ( y_[ 0 ] + 44. ) / ( 1. - std::exp( -( y_[ 0 ] + 44. ) / 2.3 ) );
-  const double beta_n = 0.0043 / std::exp( ( y_[ 0 ] + 44. ) / 34. );
-
-  y_[ HH_H ] = alpha_h / ( alpha_h + beta_h );
-  y_[ HH_N ] = alpha_n / ( alpha_n + beta_n );
-  y_[ HH_M ] = alpha_m / ( alpha_m + beta_m );
-  y_[ HH_P ] = alpha_p / ( alpha_p + beta_p );
+  y_[ IP3 ] = p.ip3_eq_;
+  y_[ CALC ] = 0.073;   // uM
+  y_[ F_IP3R ] = 0.793;
 }
 
 nest::astrocyte::State_::State_( const State_& s )
-  : r_( s.r_ )
 {
   for ( size_t i = 0; i < STATE_VEC_SIZE; ++i )
   {
@@ -216,7 +176,6 @@ nest::astrocyte::State_& nest::astrocyte::State_::operator=( const State_& s )
   {
     y_[ i ] = s.y_[ i ];
   }
-  r_ = s.r_;
   return *this;
 }
 
@@ -227,77 +186,46 @@ nest::astrocyte::State_& nest::astrocyte::State_::operator=( const State_& s )
 void
 nest::astrocyte::Parameters_::get( DictionaryDatum& d ) const
 {
-  def< double >( d, names::t_ref, t_ref_ );
-  def< double >( d, names::g_Na, g_Na );
-  def< double >( d, names::g_Kv1, g_Kv1 );
-  def< double >( d, names::g_Kv3, g_Kv3 );
-  def< double >( d, names::g_L, g_L );
-  def< double >( d, names::E_Na, E_Na );
-  def< double >( d, names::E_K, E_K );
-  def< double >( d, names::E_L, E_L );
-  def< double >( d, names::C_m, C_m );
-  def< double >( d, names::tau_syn_ex, tau_synE );
-  def< double >( d, names::tau_syn_in, tau_synI );
-  def< double >( d, names::I_e, I_e );
+  def< double >( d, names::tau_ip3, tau_ip3_ );
+  def< double >( d, names::r_ip3, r_ip3_ );
+  // TODO: add other parameters (also in nestkernel/nestnames.h and .cpp)
 }
 
 void
 nest::astrocyte::Parameters_::set( const DictionaryDatum& d )
 {
-  updateValue< double >( d, names::t_ref, t_ref_ );
-  updateValue< double >( d, names::C_m, C_m );
-  updateValue< double >( d, names::g_Na, g_Na );
-  updateValue< double >( d, names::E_Na, E_Na );
-  updateValue< double >( d, names::g_Kv1, g_Kv1 );
-  updateValue< double >( d, names::g_Kv3, g_Kv3 );
-  updateValue< double >( d, names::E_K, E_K );
-  updateValue< double >( d, names::g_L, g_L );
-  updateValue< double >( d, names::E_L, E_L );
-
-  updateValue< double >( d, names::tau_syn_ex, tau_synE );
-  updateValue< double >( d, names::tau_syn_in, tau_synI );
-
-  updateValue< double >( d, names::I_e, I_e );
+  updateValue< double >( d, names::tau_ip3, tau_ip3_ );
+  updateValue< double >( d, names::r_ip3, r_ip3_ );
+  // TODO: add other parameters and check range
+  /*
   if ( C_m <= 0 )
   {
     throw BadProperty( "Capacitance must be strictly positive." );
   }
-  if ( t_ref_ < 0 )
-  {
-    throw BadProperty( "Refractory time cannot be negative." );
-  }
-  if ( tau_synE <= 0 || tau_synI <= 0 )
-  {
-    throw BadProperty( "All time constants must be strictly positive." );
-  }
-  if ( g_Kv1 < 0 || g_Kv3 < 0 || g_Na < 0 || g_L < 0 )
-  {
-    throw BadProperty( "All conductances must be non-negative." );
-  }
+  */
 }
 
 void
 nest::astrocyte::State_::get( DictionaryDatum& d ) const
 {
-  def< double >( d, names::V_m, y_[ V_M ] );
-  def< double >( d, names::Act_m, y_[ HH_M ] );
-  def< double >( d, names::Inact_h, y_[ HH_H ] );
-  def< double >( d, names::Act_n, y_[ HH_N ] );
-  def< double >( d, names::Inact_p, y_[ HH_P ] );
+  def< double >( d, names::IP3, y_[ IP3 ] );
+  def< double >( d, names::Ca_astro, y_[ CALC ] );
+  def< double >( d, names::F_IP3R, y_[ F_IP3R ] );
 }
 
 void
 nest::astrocyte::State_::set( const DictionaryDatum& d )
 {
-  updateValue< double >( d, names::V_m, y_[ V_M ] );
-  updateValue< double >( d, names::Act_m, y_[ HH_M ] );
-  updateValue< double >( d, names::Inact_h, y_[ HH_H ] );
-  updateValue< double >( d, names::Act_n, y_[ HH_N ] );
-  updateValue< double >( d, names::Inact_p, y_[ HH_P ] );
+  updateValue< double >( d, names::IP3, y_[ IP3 ] );
+  updateValue< double >( d, names::Ca_astro, y_[ CALC ] );
+  updateValue< double >( d, names::F_IP3R, y_[ F_IP3R ] );
+  // TODO: check range of parameters
+  /*
   if ( y_[ HH_M ] < 0 || y_[ HH_H ] < 0 || y_[ HH_N ] < 0 || y_[ HH_P ] < 0 )
   {
     throw BadProperty( "All (in)activation variables must be non-negative." );
   }
+  */
 }
 
 nest::astrocyte::Buffers_::Buffers_( astrocyte& n )
@@ -375,7 +303,6 @@ void
 nest::astrocyte::init_buffers_()
 {
   B_.spike_exc_.clear(); // includes resize
-  B_.spike_inh_.clear(); // includes resize
   B_.currents_.clear();  // includes resize
 
   // allocate strucure for gap events here
@@ -444,12 +371,6 @@ nest::astrocyte::calibrate()
 {
   // ensures initialization in case mm connected after Simulate
   B_.logger_.init();
-
-  V_.PSCurrInit_E_ = 1.0 * numerics::e / P_.tau_synE;
-  V_.PSCurrInit_I_ = 1.0 * numerics::e / P_.tau_synI;
-  V_.RefractoryCounts_ = Time( Time::ms( P_.t_ref_ ) ).get_steps();
-  // since t_ref_ >= 0, this can only fail in error
-  assert( V_.RefractoryCounts_ >= 0 );
 }
 
 /* ----------------------------------------------------------------
@@ -471,6 +392,8 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
   // to be sent by gap event
   const size_t buffer_size = kernel().connection_manager.get_min_delay() * ( interpolation_order + 1 );
   std::vector< double > new_coefficients( buffer_size, 0.0 );
+  std::vector< double > sic_values( kernel().connection_manager.get_min_delay(), 0.0 );
+
 
   // parameters needed for piecewise interpolation
   double y_i = 0.0, y_ip1 = 0.0, hf_i = 0.0, hf_ip1 = 0.0;
@@ -485,16 +408,17 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
 
     if ( called_from_wfr_update )
     {
-      y_i = S_.y_[ State_::V_M ];
+      y_i = S_.y_[ State_::IP3 ];
       if ( interpolation_order == 3 )
       {
         astrocyte_dynamics( 0, S_.y_, f_temp, reinterpret_cast< void* >( this ) );
-        hf_i = B_.step_ * f_temp[ State_::V_M ];
+        hf_i = B_.step_ * f_temp[ State_::IP3 ];
       }
     }
 
     double t = 0.0;
-    const double U_old = S_.y_[ State_::V_M ];
+    // TODO: deleted to much?
+    const double U_old = S_.y_[ State_::IP3 ];
 
     // numerical integration with adaptive step size control:
     // ------------------------------------------------------
@@ -526,27 +450,6 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
 
     if ( not called_from_wfr_update )
     {
-      S_.y_[ State_::DI_EXC ] += B_.spike_exc_.get_value( lag ) * V_.PSCurrInit_E_;
-      S_.y_[ State_::DI_INH ] += B_.spike_inh_.get_value( lag ) * V_.PSCurrInit_I_;
-      // sending spikes: crossing 0 mV, pseudo-refractoriness and local
-      // maximum...
-      // refractory?
-      if ( S_.r_ > 0 )
-      {
-        --S_.r_;
-      }
-      else
-        // (    threshold    &&     maximum       )
-        if ( S_.y_[ State_::V_M ] >= 0 && U_old > S_.y_[ State_::V_M ] )
-      {
-        S_.r_ = V_.RefractoryCounts_;
-
-        set_spiketime( Time::step( origin.get_steps() + lag + 1 ) );
-
-        SpikeEvent se;
-        kernel().event_delivery_manager.send( *this, se, lag );
-      }
-
       // log state data
       B_.logger_.record_data( origin.get_steps() + lag );
 
@@ -555,11 +458,9 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
     }
     else // if(called_from_wfr_update)
     {
-      S_.y_[ State_::DI_EXC ] += B_.spike_exc_.get_value_wfr_update( lag ) * V_.PSCurrInit_E_;
-      S_.y_[ State_::DI_INH ] += B_.spike_inh_.get_value_wfr_update( lag ) * V_.PSCurrInit_I_;
       // check if deviation from last iteration exceeds wfr_tol
-      wfr_tol_exceeded = wfr_tol_exceeded or fabs( S_.y_[ State_::V_M ] - B_.last_y_values[ lag ] ) > wfr_tol;
-      B_.last_y_values[ lag ] = S_.y_[ State_::V_M ];
+      wfr_tol_exceeded = wfr_tol_exceeded or fabs( S_.y_[ State_::IP3 ] - B_.last_y_values[ lag ] ) > wfr_tol;
+      B_.last_y_values[ lag ] = S_.y_[ State_::IP3 ];
 
       // update different interpolations
 
@@ -572,15 +473,15 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
         break;
 
       case 1:
-        y_ip1 = S_.y_[ State_::V_M ];
+        y_ip1 = S_.y_[ State_::IP3 ];
 
         new_coefficients[ lag * ( interpolation_order + 1 ) + 1 ] = y_ip1 - y_i;
         break;
 
       case 3:
-        y_ip1 = S_.y_[ State_::V_M ];
+        y_ip1 = S_.y_[ State_::IP3 ];
         astrocyte_dynamics( B_.step_, S_.y_, f_temp, reinterpret_cast< void* >( this ) );
-        hf_ip1 = B_.step_ * f_temp[ State_::V_M ];
+        hf_ip1 = B_.step_ * f_temp[ State_::IP3 ];
 
         new_coefficients[ lag * ( interpolation_order + 1 ) + 1 ] = hf_i;
         new_coefficients[ lag * ( interpolation_order + 1 ) + 2 ] = -3 * y_i + 3 * y_ip1 - 2 * hf_i - hf_ip1;
@@ -592,6 +493,21 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
       }
     }
 
+    if ( not called_from_wfr_update )
+    {
+      // this is to add the incoming spikes to the state variable
+      S_.y_[ State_::IP3 ] += P_.r_ip3_ * B_.spike_exc_.get_value( lag );
+    }
+    else
+    {
+      // this is to add the incoming spikes to the state variable
+      S_.y_[ State_::IP3 ] += P_.r_ip3_ * B_.spike_exc_.get_value_wfr_update( lag );
+    }
+    double calc_thr = S_.y_[ State_::CALC ] * 1000.0 - 196.69;
+    if ( calc_thr > 1.0 )
+    {
+      sic_values[ lag ] = std::log( calc_thr );
+    }
 
   } // end for-loop
 
@@ -601,7 +517,8 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
   {
     for ( long temp = from; temp < to; ++temp )
     {
-      new_coefficients[ temp * ( interpolation_order + 1 ) + 0 ] = S_.y_[ State_::V_M ];
+      // TODO: this is for the connection between two astrocytes
+      new_coefficients[ temp * ( interpolation_order + 1 ) + 0 ] = S_.y_[ State_::IP3 ];
     }
 
     std::vector< double >( kernel().connection_manager.get_min_delay(), 0.0 ).swap( B_.last_y_values );
@@ -635,11 +552,6 @@ nest::astrocyte::handle( SpikeEvent& e )
     B_.spike_exc_.add_value( e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ),
       e.get_weight() * e.get_multiplicity() );
   }
-  else
-  {
-    B_.spike_inh_.add_value( e.get_rel_delivery_steps( kernel().simulation_manager.get_slice_origin() ),
-      e.get_weight() * e.get_multiplicity() );
-  } // current input, keep negative weight
 }
 
 void
