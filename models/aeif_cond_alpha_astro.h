@@ -322,7 +322,7 @@ public:
     double step_;            //!< step size in ms
     double IntegrationStep_; //!< current integration time step, updated by GSL
     
-    RingBuffer sic_currents;
+    RingBuffer sic_currents_;
 
     /**
      * Input current injected by CurrentEvent.

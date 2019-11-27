@@ -380,6 +380,7 @@ nest::aeif_cond_alpha_astro::init_buffers_()
   B_.spike_exc_.clear(); // includes resize
   B_.spike_inh_.clear(); // includes resize
   B_.currents_.clear();  // includes resize
+  B_.sic_currents_.clear(); // includes resize
   Archiving_Node::clear_history();
 
   B_.logger_.reset();
@@ -578,7 +579,7 @@ nest::aeif_cond_alpha_astro::handle( SICEvent& e )
   // The call to get_coeffvalue( it ) in this loop also advances the iterator it
   while ( it != e.end() )
   {
-    B_.sic_currents.add_value( delay + i, weight * e.get_coeffvalue( it ) );
+    B_.sic_currents_.add_value( delay + i, weight * e.get_coeffvalue( it ) );
     ++i;
   }
 }
