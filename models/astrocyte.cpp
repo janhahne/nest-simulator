@@ -615,7 +615,7 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
   // Send sic-event
   SICEvent sic;
   std::vector< double > some_values( kernel().connection_manager.get_min_delay(), 0.0 );
-  ge.set_coeffarray( some_values );
+  sic.set_coeffarray( some_values );
   kernel().event_delivery_manager.send_secondary( *this, sic );
 
   // Reset variables
