@@ -2,30 +2,54 @@ import numpy as np
 from matplotlib import pyplot as plt
 import nest
 
-nrn_model = 'aeif_cond_alpha_astro'
-astro_model = 'astrocyte'
-conn_nrn_astro = 'tsodyks_synapse'
-conn_nrn_nrn = 'tsodyks_synapse'
-conn_astro_nrn = 'sic_connection'
+nrn_model = "aeif_cond_alpha_astro"
+astro_model = "astrocyte"
+conn_nrn_astro = "tsodyks_synapse"
+conn_nrn_nrn = "tsodyks_synapse"
+conn_astro_nrn = "sic_connection"
 
+# Create pre- and postsynaptic neurons and an astrocyte
 send_nrn = nest.Create(nrn_model, 1)
 rec_nrn = nest.Create(nrn_model, 1)
 astro = nest.Create(astro_model, 1)
-mm = nest.Create('multimeter', params = {'record_from': ['V_m'], 'withtime': True})
-curr_gen = nest.Create('dc_generator', params = {'start':1.0, 'amplitude': 800.0})
 
-nest.Connect(send_nrn, rec_nrn, syn_spec = {'model': conn_nrn_nrn})
-nest.Connect(send_nrn, astro, syn_spec = {'model': conn_nrn_astro})
+# A simple connectivity scheme.
+# The connections to the astrocyte need to be exact copies of presynaptic
+# connections
+nest.Connect(send_nrn, rec_nrn, syn_spec={"model": conn_nrn_nrn, 'weight': 200.0})
+nest.Connect(send_nrn, astro, syn_spec={"model": conn_nrn_astro, 'weight': 60.})
+nest.Connect(astro, rec_nrn, syn_spec={"model": conn_astro_nrn, 'weight': 2.11})
+
+# Create recording and stimulation devices
+pre_multimeter = nest.Create(
+    "multimeter", params={"record_from": ["V_m"], "withtime": True}
+)
+nest.Connect(pre_multimeter, send_nrn)
+post_multimeter = nest.Create(
+    "multimeter", params={"record_from": ["V_m"], "withtime": True}
+)
+nest.Connect(post_multimeter, rec_nrn)
+curr_gen = nest.Create("dc_generator", params={"start": 10.0, "stop": 1000.0, "amplitude": 800.0})
 nest.Connect(curr_gen, send_nrn)
-#nest.Connect(astro, rec_nrn, syn_spec = {'model': conn_astro_nrn})
-nest.Connect(mm, send_nrn)
+astro_meter = nest.Create("multimeter", params={"record_from": ["IP3", "Ca_astro"], "withtime": True})
+nest.Connect(astro_meter, astro)
 
-nest.Simulate(150.0)
+nest.Simulate(2000.0)
 
-mm_data = nest.GetStatus(mm)[0]['events']
-times = mm_data['times']
-voltages = mm_data['V_m']
+mm_data = nest.GetStatus(pre_multimeter)[0]["events"]
+times = mm_data["times"]
+voltages = mm_data["V_m"]
+
+post_data = nest.GetStatus(post_multimeter)[0]["events"]
+
+ip3_data = nest.GetStatus(astro_meter)[0]["events"]
 
 plt.figure()
+plt.subplot(3, 1, 1)
 plt.plot(times, voltages)
+plt.plot(post_data['times'], post_data['V_m'])
+plt.subplot(3, 1, 2)
+plt.plot(ip3_data["times"], ip3_data["IP3"])
+plt.subplot(3, 1, 3)
+plt.plot(ip3_data["times"], ip3_data["Ca_astro"])
 plt.show()
