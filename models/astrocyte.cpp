@@ -506,7 +506,8 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
     double calc_thr = S_.y_[ State_::CALC ] * 1000.0 - 196.69;
     if ( calc_thr > 1.0 )
     {
-      sic_values[ lag ] = std::log( calc_thr );
+      /* The SIC is converted to pA from uA/cm2 in the original publication */
+      sic_values[ lag ] = std::pow(25, 2) * 3.14 * std::pow(10, -2) * std::log( calc_thr );
     }
 
   } // end for-loop
@@ -531,8 +532,7 @@ nest::astrocyte::update_( Time const& origin, const long from, const long to, co
   
   // Send sic-event
   SICEvent sic;
-  std::vector< double > some_values( kernel().connection_manager.get_min_delay(), 0.0 );
-  sic.set_coeffarray( some_values );
+  sic.set_coeffarray( sic_values );
   kernel().event_delivery_manager.send_secondary( *this, sic );
 
   // Reset variables

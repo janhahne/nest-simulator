@@ -105,7 +105,7 @@ nest::aeif_cond_alpha_astro_dynamics( double, const double y[], double f[], void
 
   // dv/dt
   f[ S::V_M ] = is_refractory ? 0. : ( -node.P_.g_L * ( V - node.P_.E_L ) + I_spike - I_syn_exc - I_syn_inh - w
-                                       + node.P_.I_e + node.B_.I_stim_ ) / node.P_.C_m;
+                                       + node.P_.I_e + node.B_.I_stim_ + node.B_.I_sic_ ) / node.P_.C_m;
 
   f[ S::DG_EXC ] = -dg_ex / node.P_.tau_syn_ex;
   // Synaptic Conductance (nS)
@@ -423,6 +423,7 @@ nest::aeif_cond_alpha_astro::init_buffers_()
   B_.sys_.function = aeif_cond_alpha_astro_dynamics;
 
   B_.I_stim_ = 0.0;
+  B_.I_sic_ = 0.0;
 }
 
 void
@@ -531,8 +532,9 @@ nest::aeif_cond_alpha_astro::update( Time const& origin, const long from, const 
     S_.y_[ State_::DG_EXC ] += B_.spike_exc_.get_value( lag ) * V_.g0_ex_;
     S_.y_[ State_::DG_INH ] += B_.spike_inh_.get_value( lag ) * V_.g0_in_;
 
-    // set new input current
+    // set new input currents
     B_.I_stim_ = B_.currents_.get_value( lag );
+    B_.I_sic_ = B_.sic_currents_.get_value( lag );
 
     // log state data
     B_.logger_.record_data( origin.get_steps() + lag );

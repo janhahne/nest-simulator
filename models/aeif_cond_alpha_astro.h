@@ -332,6 +332,7 @@ public:
      * the first simulation, but not modified before later Simulate calls.
      */
     double I_stim_;
+    double I_sic_;
   };
 
   // ----------------------------------------------------------------
