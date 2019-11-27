@@ -137,6 +137,7 @@
 #include "quantal_stp_connection_impl.h"
 #include "rate_connection_instantaneous.h"
 #include "rate_connection_delayed.h"
+#include "sic_connection.h"
 #include "spike_dilutor.h"
 #include "static_connection.h"
 #include "static_connection_hom_w.h"
@@ -425,6 +426,10 @@ ModelsModule::init( SLIInterpreter* )
     /*has_delay=*/false,
     /*requires_symmetric=*/true,
     /*supports_wfr=*/true );
+  kernel().model_manager.register_secondary_connection_model< SICConnection < TargetIdentifierPtrRport > >( "sic_connection",
+    /*has_delay=*/true,
+    /*requires_symmetric=*/false,
+    /*supports_wfr=*/false );
   kernel().model_manager.register_secondary_connection_model< RateConnectionInstantaneous< TargetIdentifierPtrRport > >(
     "rate_connection_instantaneous",
     /*has_delay=*/false,
