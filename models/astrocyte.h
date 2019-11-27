@@ -178,6 +178,11 @@ public:
   sends_secondary_event( GapJunctionEvent& )
   {
   }
+  
+  void
+  sends_secondary_event( SICEvent& )
+  {
+  }
 
   void get_status( DictionaryDatum& ) const;
   void set_status( const DictionaryDatum& );
