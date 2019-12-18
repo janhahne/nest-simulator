@@ -18,7 +18,7 @@ astro = nest.Create(astro_model, 1)
 # connections
 nest.Connect(send_nrn, rec_nrn, syn_spec={"model": conn_nrn_nrn, 'weight': 200.0})
 nest.Connect(send_nrn, astro, syn_spec={"model": conn_nrn_astro, 'weight': 60.})
-nest.Connect(astro, rec_nrn, syn_spec={"model": conn_astro_nrn, 'weight': 2.11})
+nest.Connect(astro, rec_nrn, syn_spec={"model": conn_astro_nrn, 'weight': 10.11})
 
 # Create recording and stimulation devices
 pre_multimeter = nest.Create(
@@ -46,10 +46,14 @@ ip3_data = nest.GetStatus(astro_meter)[0]["events"]
 
 plt.figure()
 plt.subplot(3, 1, 1)
-plt.plot(times, voltages)
-plt.plot(post_data['times'], post_data['V_m'])
+plt.title('Voltages')
+plt.plot(times, voltages, label='presynaptic')
+plt.plot(post_data['times'], post_data['V_m'], label='postsynaptic')
+plt.legend()
 plt.subplot(3, 1, 2)
+plt.title('Astrocyte IP3')
 plt.plot(ip3_data["times"], ip3_data["IP3"])
 plt.subplot(3, 1, 3)
+plt.title('Astrocyte Ca')
 plt.plot(ip3_data["times"], ip3_data["Ca_astro"])
 plt.show()
