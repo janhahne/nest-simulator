@@ -2,8 +2,8 @@ Simulations with precise spike times
 ====================================
 
 The simulation resolution *h* and the minimum synaptic transmission
-delay *dmin* define the two major time intervals of the `scheduling and
-simulation flow of NEST <scheduling-and-simulation-flow.md>`__: neurons
+delay *dmin* define the two major time intervals of the :doc:`scheduling and
+simulation flow of NEST <scheduling_and_simulation_flow>`: neurons
 update their state variables in steps of *h*, whereas spikes are
 communicated and delivered to their targets in steps of *dmin*, where
 *dmin* is a multiple of *h*.
@@ -43,7 +43,7 @@ to update its state variables for each substep.
 
 .. figure:: ../_static/img/precise1-300x175.png
 
- Propagation of membrane potential in case of off-grid spiking. 
+ Propagation of membrane potential in case of off-grid spiking.
  Dashed red line indicates precise time of threshold crossing.
 
 If after an update the membrane potential is above the firing threshold,
@@ -67,17 +67,17 @@ grid-constrained counterpart ``poisson_generator``.
 grid-constrained counterpart ``parrot_neuron`` but it is able to
 represent precise spike times.
 
-``iaf_psc_delta_canon`` is an integrate-and-fire neuron model with
+``iaf_psc_delta_ps`` is an integrate-and-fire neuron model with
 delta-shaped post-synaptic currents that employs precise spike times;
 its grid-constrained counterpart is ``iaf_psc_delta``. In this model the
 precise location of an outgoing spike is determined analytically.
 
-``iaf_psc_alpha_canon`` and ``iaf_psc_alpha_presc`` are
-integrate-and-fire neuron models with alpha-shaped post-synaptic
-currents that employ precise spike times; their grid-constrained
+``iaf_psc_alpha_ps`` is an
+integrate-and-fire neuron model with alpha-shaped post-synaptic
+current that employ precise spike times; The grid-constrained
 counterpart is ``iaf_psc_alpha``. The neuron models have been developed
 in the context of `Morrison et al.
-(2007) <http://dx.doi.org/10.1162/neco.2007.19.1.47>`__. As both models
+(2007) <http://dx.doi.org/10.1162/neco.2007.19.1.47>`__. As the model
 employ interpolation in order to determine the precise location of an
 outgoing spike, the achieved precision depends on the simulation
 resolution *h*. The models differ in the way they process incoming

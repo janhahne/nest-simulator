@@ -23,10 +23,19 @@
 #ifndef SORT_H
 #define SORT_H
 
+#include <algorithm>
 #include <cstddef>
 #include <vector>
 
+// Generated includes:
+#include "config.h"
+
 #include "block_vector.h"
+
+#ifdef HAVE_BOOST
+#include <boost/sort/spreadsort/spreadsort.hpp>
+#include "iterator_pair.h"
+#endif
 
 #define INSERTION_SORT_CUTOFF 10 // use insertion sort for smaller arrays
 
@@ -38,14 +47,10 @@ namespace nest
  */
 template < typename T >
 inline size_t
-median3_( const BlockVector< T >& vec,
-  const size_t i,
-  const size_t j,
-  const size_t k )
+median3_( const BlockVector< T >& vec, const size_t i, const size_t j, const size_t k )
 {
-  return ( ( vec[ i ] < vec[ j ] )
-      ? ( ( vec[ j ] < vec[ k ] ) ? j : ( vec[ i ] < vec[ k ] ) ? k : i )
-      : ( ( vec[ k ] < vec[ j ] ) ? j : ( vec[ k ] < vec[ i ] ) ? k : i ) );
+  return ( ( vec[ i ] < vec[ j ] ) ? ( ( vec[ j ] < vec[ k ] ) ? j : ( vec[ i ] < vec[ k ] ) ? k : i )
+                                   : ( ( vec[ k ] < vec[ j ] ) ? j : ( vec[ k ] < vec[ i ] ) ? k : i ) );
 }
 
 /**
@@ -57,15 +62,11 @@ median3_( const BlockVector< T >& vec,
  */
 template < typename T1, typename T2 >
 void
-insertion_sort( BlockVector< T1 >& vec_sort,
-  BlockVector< T2 >& vec_perm,
-  const size_t lo,
-  const size_t hi )
+insertion_sort( BlockVector< T1 >& vec_sort, BlockVector< T2 >& vec_perm, const size_t lo, const size_t hi )
 {
   for ( size_t i = lo + 1; i < hi + 1; ++i )
   {
-    for ( size_t j = i; ( j > lo ) and ( vec_sort[ j ] < vec_sort[ j - 1 ] );
-          --j )
+    for ( size_t j = i; ( j > lo ) and ( vec_sort[ j ] < vec_sort[ j - 1 ] ); --j )
     {
       std::swap( vec_sort[ j ], vec_sort[ j - 1 ] );
       std::swap( vec_perm[ j ], vec_perm[ j - 1 ] );
@@ -84,10 +85,7 @@ insertion_sort( BlockVector< T1 >& vec_sort,
  */
 template < typename T1, typename T2 >
 void
-quicksort3way( BlockVector< T1 >& vec_sort,
-  BlockVector< T2 >& vec_perm,
-  const size_t lo,
-  const size_t hi )
+quicksort3way( BlockVector< T1 >& vec_sort, BlockVector< T2 >& vec_perm, const size_t lo, const size_t hi )
 {
   if ( lo >= hi )
   {
@@ -104,7 +102,8 @@ quicksort3way( BlockVector< T1 >& vec_sort,
   }
 
   // use median-of-3 as partitioning element
-  size_t m = median3_( vec_sort, lo, lo + n / 2, hi );
+  size_t m = median3_(
+    vec_sort, lo + std::rand() % ( hi - lo ), lo + std::rand() % ( hi - lo ), lo + std::rand() % ( hi - lo ) );
 
   // in case of many equal entries, make sure to use first entry with
   // this value (useful for sorted arrays)
@@ -125,7 +124,7 @@ quicksort3way( BlockVector< T1 >& vec_sort,
   const T1 v = vec_sort[ lt ]; // pivot
 
   // adjust position of i and lt (useful for sorted arrays)
-  while ( vec_sort[ i ] < v )
+  while ( vec_sort[ i ] < v and i < vec_sort.size() - 1 )
   {
     ++i;
   }
@@ -134,7 +133,7 @@ quicksort3way( BlockVector< T1 >& vec_sort,
   lt = i - 1;
 
   // adjust position of gt (useful for sorted arrays)
-  while ( vec_sort[ gt ] > v )
+  while ( vec_sort[ gt ] > v and gt > 0 )
   {
     --gt;
   }
@@ -173,7 +172,13 @@ template < typename T1, typename T2 >
 void
 sort( BlockVector< T1 >& vec_sort, BlockVector< T2 >& vec_perm )
 {
+#ifdef HAVE_BOOST
+  boost::sort::spreadsort::integer_sort( make_iterator_pair( vec_sort.begin(), vec_perm.begin() ),
+    make_iterator_pair( vec_sort.end(), vec_perm.end() ),
+    rightshift_iterator_pair() );
+#else
   quicksort3way( vec_sort, vec_perm, 0, vec_sort.size() - 1 );
+#endif
 }
 
 } // namespace sort

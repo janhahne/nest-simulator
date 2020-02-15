@@ -41,7 +41,7 @@ class ParrotNeuronPSTestCase(unittest.TestCase):
     """Check parrot_neuron spike repetition properties"""
 
     def setUp(self):
-        nest.hl_api.set_verbosity('M_WARNING')
+        nest.set_verbosity('M_WARNING')
         nest.ResetKernel()
 
         # set up source spike generator, as well as parrot neurons
@@ -51,8 +51,7 @@ class ParrotNeuronPSTestCase(unittest.TestCase):
                                   {"spike_times": [self.spike_time],
                                    'precise_times': True})
         self.parrot = nest.Create('parrot_neuron_ps')
-        self.spikes = nest.Create("spike_detector",
-                                  params={'precise_times': True})
+        self.spikes = nest.Create("spike_detector")
 
         # record source and parrot spikes
         nest.Connect(self.source, self.spikes)
@@ -67,7 +66,8 @@ class ParrotNeuronPSTestCase(unittest.TestCase):
 
         # get spike from parrot neuron
         events = nest.GetStatus(self.spikes)[0]["events"]
-        post_time = events['times'][events['senders'] == self.parrot[0]]
+        post_time = events['times'][
+            events['senders'] == self.parrot[0].get('global_id')]
 
         # assert spike was repeated at correct time
         assert post_time, "Parrot neuron failed to repeat spike."
@@ -84,7 +84,8 @@ class ParrotNeuronPSTestCase(unittest.TestCase):
 
         # get spike from parrot neuron, assert it was ignored
         events = nest.GetStatus(self.spikes)[0]["events"]
-        post_time = events['times'][events['senders'] == self.parrot[0]]
+        post_time = events['times'][
+            events['senders'] == self.parrot.get('global_id')]
         assert len(post_time) == 0, \
             "Parrot neuron failed to ignore spike arriving on port 1"
 
@@ -103,7 +104,8 @@ class ParrotNeuronPSTestCase(unittest.TestCase):
 
         # get spikes from parrot neuron, assert two were transmitted
         events = nest.GetStatus(self.spikes)[0]["events"]
-        post_times = events['times'][events['senders'] == self.parrot[0]]
+        post_times = events['times'][
+            events['senders'] == self.parrot.get('global_id')]
         assert len(post_times) == 2 and post_times[0] == post_times[1], \
             "Parrot neuron failed to correctly repeat multiple spikes."
 
@@ -143,7 +145,7 @@ class ParrotNeuronPSPoissonTestCase(unittest.TestCase):
         assert spikes_expected - 3 * spikes_std > 10. * t_sim / h, \
             "Internal inconsistency: too few spikes."
 
-        nest.hl_api.set_verbosity('M_WARNING')
+        nest.set_verbosity('M_WARNING')
         nest.ResetKernel()
         nest.SetKernelStatus({'resolution': h,
                               'grng_seed': 123,
@@ -151,7 +153,7 @@ class ParrotNeuronPSPoissonTestCase(unittest.TestCase):
 
         source = nest.Create('poisson_generator', params={'rate': rate})
         parrots = nest.Create('parrot_neuron_ps', 2)
-        detect = nest.Create('spike_detector', params={'precise_times': True})
+        detect = nest.Create('spike_detector')
 
         nest.Connect(source, parrots[:1], syn_spec={'delay': delay})
         nest.Connect(parrots[:1], parrots[1:], syn_spec={'delay': delay})
@@ -180,7 +182,7 @@ class ParrotNeuronPSSTDPTestCase(unittest.TestCase):
         """Set up a network with pre-post spike pairings with
         t_post - t_pre = dt"""
 
-        nest.hl_api.set_verbosity("M_WARNING")
+        nest.set_verbosity("M_WARNING")
         nest.ResetKernel()
 
         # set pre and postsynaptic spike times
@@ -208,8 +210,7 @@ class ParrotNeuronPSSTDPTestCase(unittest.TestCase):
         nest.Connect(post_spikes, post_parrot, syn_spec={"delay": delay})
 
         # create spike detector
-        spikes = nest.Create("spike_detector",
-                             params={'precise_times': True})
+        spikes = nest.Create("spike_detector")
         nest.Connect(pre_parrot, spikes)
         nest.Connect(post_parrot, spikes)
 
@@ -217,7 +218,7 @@ class ParrotNeuronPSSTDPTestCase(unittest.TestCase):
         # thereby spikes transmitted through the stdp connection are
         # not repeated postsynaptically.
         syn_spec = {
-            "model": "stdp_synapse",
+            "synapse_model": "stdp_synapse",
             # set receptor 1 postsynaptically, to not generate extra spikes
             "receptor_type": 1,
         }
@@ -230,15 +231,13 @@ class ParrotNeuronPSSTDPTestCase(unittest.TestCase):
         # get STDP synapse and weight before protocol
         syn = nest.GetConnections(
             source=pre_parrot, synapse_model="stdp_synapse")
-        syn_status = nest.GetStatus(syn)[0]
-        w_pre = syn_status['weight']
+        w_pre = syn.get('weight')
 
         last_time = max(pre_times[-1], post_times[-1])
         nest.Simulate(_round_up(last_time + 2 * delay))
 
         # get weight post protocol
-        syn_status = nest.GetStatus(syn)[0]
-        w_post = syn_status['weight']
+        w_post = syn.get('weight')
 
         return w_pre, w_post
 

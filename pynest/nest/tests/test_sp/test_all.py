@@ -60,7 +60,8 @@ def suite():
 
     return test_suite
 
+
 if __name__ == "__main__":
-    nest.hl_api.set_verbosity('M_WARNING')
+    nest.set_verbosity('M_WARNING')
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite())

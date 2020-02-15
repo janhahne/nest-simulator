@@ -2,6 +2,20 @@
 Welcome to the NEST simulator documentation!
 ***********************************************
 
+:orange:`Introducing NEST 3.0!`
+-------------------------------
+
+Our aim with NEST 3.0 is to provide a more intuitive experience with simplified yet versatile handling and manipulation of nodes and connections.
+
+
+- We have provided a :doc:`guide to NEST 3.0 <guides/from_nest2_to_nest3>` , including examples of the new functionality.
+
+
+- You can also checkout our :doc:`ref_material/nest2_vs_3` to get a comparison between old and new syntax.
+
+----
+
+If you use NEST for your project, don't forget to :doc:`cite NEST <citing-nest>`!
 
 +------------------------------------+---------------------------------------+
 |                                    |                                       |
@@ -11,34 +25,32 @@ Welcome to the NEST simulator documentation!
 
 NEST is a simulator for **spiking neural network models**, ideal for networks of any size, for example:
 
-1.  Models of information processing e.g. in the visual or auditory cortex of
+1.  Models of information processing e.g., in the visual or auditory cortex of
     mammals,
 
-2.  Models of network activity dynamics, e.g. laminar cortical networks or
+2.  Models of network activity dynamics, e.g., laminar cortical networks or
     balanced random networks,
 
 3.  Models of learning and plasticity.
-
-
 
 **New to NEST?**
     Start here at our :doc:`Getting Started <getting_started>` page
 
 
 **Have an idea of the type of model you need?**
-    Click on one of the images to access our model directory:
+    Click on one of the images to access our :doc:`model directory <models/index>`:
 
 .. raw:: html
 
  <embed>
 
- <a href="models/neurons/index.html">
+ <a href="models/neurons.html">
     <img src="_static/img/neuron.png" alt="Neuron Models" style="width:150px;height:150px;border:0;">
   </a>
-  <a href="models/synapses/index.html">
+  <a href="models/synapses.html">
     <img src="_static/img/synapse1.png" alt="Synapse Models" style="width:150px;height:150px;border:0;">
   </a>
-  <a href="models/devices/index.html">
+  <a href="models/devices.html">
     <img src="_static/img/oscilloscope.png" alt="Devices" style="width:150px;height:150px;border:0;">
   </a>
   </embed>
@@ -79,14 +91,14 @@ How the documentation is organized
 Contribute
 ###########
 
-* Have you used NEST in an article or presentation? :doc:`Let us know <community>` and we will add it to our list of `publications <http://www.nest-simulator.org/publications/>`_.
+* Have you used NEST in an article or presentation? :doc:`Let us know <community>` and we will add it to our list of `publications <https://www.nest-simulator.org/publications/>`_.
   Find out how to :doc:`cite NEST <citing-nest>` in your work.
 
 * If you have any comments or suggestions, please share them on our :doc:`Mailing List <community>`.
 
 * Want to contribute code? Check out our `Developer Space <https://nest.github.io/nest-simulator/>`_ to get started!
 
-* For more info about our larger community and the history of NEST check out the `NEST Initiative <http://www.NEST-initiative.org>`_ website
+* For more info about our larger community and the history of NEST check out the `NEST Initiative <https://www.nest-initiative.org>`_ website
 
 Links to other projects:
 -------------------------------------
@@ -95,5 +107,11 @@ The  `NeuralEnsemble <http://neuralensemble.org/>`_ is a community-based initiat
 They host numerous software including `PyNN <http://neuralensemble.org/PyNN/>`_, a simulator-independent language for building neuronal network models and `Elephant (Electrophysiology Analysis Toolkit) <http://neuralensemble.org/elephant/>`_, a package for the analysis of neurophysiology data, using Neo data structures.
 
 
+
+NEST is available under the :doc:`GNU General Public License 2 or later <license>`. This means that you can
+
+-  use NEST for your research,
+-  modify and improve NEST according to your needs,
+-  distribute NEST to others under the same license.
 
 

@@ -24,8 +24,8 @@ at the command prompt. You should then see something like this:
    NO WARRANTY. See the file LICENSE for details.
 
    Problems or suggestions?
-     Website     : http://www.nest-initiative.org
-     Mailing list: nest_user@nest-initiative.org
+     Website     : https://www.nest-initiative.org
+     Mailing list: users@nest-simulator.org
 
    Type 'help' to get more information.
    Type 'quit' or CTRL-D to quit NEST.

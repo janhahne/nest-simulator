@@ -36,7 +36,7 @@ class StepRateGeneratorTestCase(unittest.TestCase):
 
         rates = np.array([400.0, 1000.0, 200.0])
 
-        nest.hl_api.set_verbosity('M_WARNING')
+        nest.set_verbosity('M_WARNING')
         nest.ResetKernel()
         nest.SetKernelStatus(
             {'resolution': 0.1, 'use_wfr': False, 'print_time': False})
@@ -52,8 +52,9 @@ class StepRateGeneratorTestCase(unittest.TestCase):
                        10.0, 110.0, 210.0], "amplitude_values": rates})
 
         # connect srg to neuron
-        nest.Connect(srg, neuron, "one_to_one", {
-                     "model": "rate_connection_delayed", "weight": 1.0})
+        nest.Connect(srg, neuron, "one_to_one",
+                     {"synapse_model": "rate_connection_delayed",
+                      "weight": 1.0})
         nest.Connect(mm, neuron)
         nest.Connect(mm, srg)
 
@@ -63,9 +64,11 @@ class StepRateGeneratorTestCase(unittest.TestCase):
         # read data from multimeter
         data = nest.GetStatus(mm)[0]['events']
         rates_neuron = np.array(
-            data['rate'][np.where(data['senders'] == neuron)])
-        rates_srg = np.array(data['rate'][np.where(data['senders'] == srg)])
-        times = np.array(data['times'][np.where(data['senders'] == neuron)])
+            data['rate'][np.where(data['senders'] == neuron.get('global_id'))])
+        rates_srg = np.array(data['rate'][
+            np.where(data['senders'] == srg.get('global_id'))])
+        times = np.array(data['times'][
+            np.where(data['senders'] == neuron.get('global_id'))])
 
         # make sure that srg produces the desired rates
         assert(np.array_equal(rates, rates_srg))

@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with NEST.  If not, see <http://www.gnu.org/licenses/>.
 
-if ( with-boost )
+if ( HAVE_BOOST )
   include_directories( ${BOOST_INCLUDE_DIR} )
 
   add_executable( run_all_cpptests run_all.cpp )
@@ -28,6 +28,7 @@ if ( with-boost )
   target_include_directories( run_all_cpptests PRIVATE
     ${PROJECT_SOURCE_DIR}/libnestutil
     ${PROJECT_BINARY_DIR}/libnestutil
+    ${PROJECT_SOURCE_DIR}/librandom
     ${PROJECT_SOURCE_DIR}/nestkernel
     ${PROJECT_SOURCE_DIR}/sli
     )

@@ -28,13 +28,14 @@
 #include <climits>
 #include <cstddef>
 #include <limits>
+#include <stdint.h>
 
 // Generated includes:
 #include "config.h"
 
 #ifdef HAVE_32BIT_ARCH
 #ifdef HAVE_UINT64_T // 32-bit platforms usually provide the ...
-#include <stdint.h> // ... 64-bit unsigned integer data type 'uint64_t' in stdint.h
+#include <stdint.h>  // ... 64-bit unsigned integer data type 'uint64_t' in stdint.h
 #else
 #error "32-bit platform does not provide a 64-bit unsigned integer data type"
 #endif
@@ -58,6 +59,50 @@ namespace nest
  * the precision of the kernel or to adapt the kernel to
  * different architectures (e.g. 32 or 64 bit).
  */
+
+// constexpr-functions for convenient compile-time generation of the bit-masks
+// and bit-constants. An ill-defined length or size will cause a compile-time
+// error, e.g., num_bits to be shifted exceeds the sizeof(<datatype>) * 8.
+constexpr uint64_t
+generate_bit_mask( const uint8_t num_bits, const uint8_t bit_position )
+{
+  return ( ( ( static_cast< uint64_t >( 1 ) << num_bits ) - 1 ) << bit_position );
+}
+
+constexpr uint64_t
+generate_max_value( const uint8_t num_bits )
+{
+  return ( ( static_cast< uint64_t >( 1 ) << num_bits ) - 1 );
+}
+
+/*
+ * Sizes of bitfields used in various classes in the kernel.
+ */
+#if TARGET_BITS_SPLIT == TARGET_BITS_SPLIT_STANDARD
+constexpr uint8_t NUM_BITS_RANK = 18U;
+constexpr uint8_t NUM_BITS_TID = 9U;
+constexpr uint8_t NUM_BITS_SYN_ID = 9U;
+#elif TARGET_BITS_SPLIT == TARGET_BITS_SPLIT_HPC
+constexpr uint8_t NUM_BITS_RANK = 20U;
+constexpr uint8_t NUM_BITS_TID = 10U;
+constexpr uint8_t NUM_BITS_SYN_ID = 6U;
+#endif
+constexpr uint8_t NUM_BITS_LCID = 27U;
+constexpr uint8_t NUM_BITS_PROCESSED_FLAG = 1U;
+constexpr uint8_t NUM_BITS_MARKER_SPIKE_DATA = 2U;
+constexpr uint8_t NUM_BITS_LAG = 14U;
+constexpr uint8_t NUM_BITS_DELAY = 21U;
+constexpr uint8_t NUM_BITS_NODE_ID = 62U;
+
+/*
+ * Maximally allowed values for bitfields
+ */
+constexpr uint64_t MAX_LCID = generate_max_value( NUM_BITS_LCID );
+constexpr int64_t MAX_RANK = generate_max_value( NUM_BITS_RANK );
+constexpr int64_t MAX_TID = generate_max_value( NUM_BITS_TID );
+constexpr uint64_t MAX_SYN_ID = generate_max_value( NUM_BITS_SYN_ID );
+constexpr uint64_t DISABLED_NODE_ID = generate_max_value( NUM_BITS_NODE_ID );
+constexpr uint64_t MAX_NODE_ID = DISABLED_NODE_ID - 1;
 
 /**
  * Type for Time tics.
@@ -84,15 +129,13 @@ typedef size_t index;
 #ifndef SIZE_MAX
 #define SIZE_MAX ( static_cast< std::size_t >( -1 ) )
 #endif
-const index invalid_index = SIZE_MAX;
+__attribute__( ( __unused__ ) ) const index invalid_index = SIZE_MAX;
 
 /**
- *  Unsigned char type for enumerations of synapse types.
+ *  For enumerations of synapse types.
  */
-typedef unsigned char synindex;
-// const synindex invalid_synindex = UCHAR_MAX;
-const synindex invalid_synindex =
-  63; // number of synapse types limited by size of syn_id in target.h
+typedef unsigned int synindex;
+const synindex invalid_synindex = MAX_SYN_ID;
 
 /**
  * Unsigned short type for compact target representation.
@@ -102,7 +145,7 @@ const synindex invalid_synindex =
 //! target index into thread local node vector
 typedef unsigned short targetindex;
 const targetindex invalid_targetindex = USHRT_MAX;
-const index max_targetindex = invalid_targetindex - 1;
+__attribute__( ( __unused__ ) ) const index max_targetindex = invalid_targetindex - 1;
 
 /**
  * Thread index type.
